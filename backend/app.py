@@ -1,16 +1,10 @@
 import os
-import sys
-
-# IMPORTANTE: Configura PATH antes de qualquer import que possa spawnar subprocessos
-TOOLS_DIR = r"C:\ffmpeg"
-if TOOLS_DIR not in os.environ.get("PATH", ""):
-    os.environ["PATH"] = TOOLS_DIR + ";" + os.environ["PATH"]
+import shutil
 
 from flask import Flask, request, jsonify, Response, stream_with_context
 from flask_cors import CORS
 import yt_dlp
 import tempfile
-import shutil
 import glob
 
 print(f"[INFO] deno: {shutil.which('deno')}")
@@ -25,26 +19,29 @@ BASE_OPTS = {
     "no_warnings": True,
     "geo_bypass": True,
     "nocheckcertificate": True,
-    "ffmpeg_location": TOOLS_DIR,
     "http_headers": {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
     },
 }
 
+# Detecta ffmpeg automaticamente (Windows local ou Linux/Docker)
+_ffmpeg = shutil.which("ffmpeg")
+if _ffmpeg:
+    BASE_OPTS["ffmpeg_location"] = os.path.dirname(_ffmpeg)
+elif os.path.isdir(r"C:\ffmpeg"):
+    BASE_OPTS["ffmpeg_location"] = r"C:\ffmpeg"
+
 
 def get_ydl_opts(extra_opts):
-    """Merge base opts with extra opts."""
     return {**BASE_OPTS, **extra_opts}
 
 
 def extract_with_fallback(url, ydl_opts):
-    """Tenta extrair info/download com diferentes player_clients se falhar."""
     should_download = "outtmpl" in ydl_opts
 
-    # Ordem de tentativas de clientes
     client_attempts = [
-        None,           # padrao (sem override)
+        None,
         ["android"],
         ["web"],
         ["ios"],
@@ -165,7 +162,6 @@ def download():
         file_size = os.path.getsize(filepath)
         safe_title = "".join(c for c in title if c.isalnum() or c in " -_(),.").strip()
         filename = f"{safe_title}.{ext}"
-        # Encode para UTF-8 no header (suporta acentos)
         filename_utf8 = filename.encode("utf-8", errors="ignore").decode("utf-8")
 
         def generate():
@@ -194,7 +190,7 @@ def download():
         if "not available" in msg:
             return jsonify({"error": "Video indisponivel. Pode ser restrito por regiao ou idade."}), 400
         if "ffmpeg" in msg.lower() or "ffprobe" in msg.lower():
-            return jsonify({"error": "ffmpeg nao encontrado. Instale o ffmpeg no sistema."}), 500
+            return jsonify({"error": "ffmpeg nao encontrado."}), 500
         return jsonify({"error": msg}), 500
     except Exception as e:
         shutil.rmtree(tmpdir, ignore_errors=True)

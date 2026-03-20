@@ -11,10 +11,10 @@ RUN curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY backend/app.py .
 
 EXPOSE 10000
 
