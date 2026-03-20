@@ -15,6 +15,7 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/app.py .
+COPY backend/index.html .
 
 EXPOSE 10000
 

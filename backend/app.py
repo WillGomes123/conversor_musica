@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from flask import Flask, request, jsonify, Response, stream_with_context
+from flask import Flask, request, jsonify, Response, stream_with_context, send_file
 from flask_cors import CORS
 import yt_dlp
 import tempfile
@@ -68,6 +68,14 @@ def extract_with_fallback(url, ydl_opts):
 
 
 @app.route("/")
+def index():
+    index_path = os.path.join(os.path.dirname(__file__), "index.html")
+    if os.path.exists(index_path):
+        return send_file(index_path)
+    return jsonify({"status": "ok"})
+
+
+@app.route("/health")
 def health():
     return jsonify({"status": "ok"})
 
