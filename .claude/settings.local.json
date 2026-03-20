@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"^\\(#|$|.*youtube\\\\.com|.*google\\\\.com|.*googlevideo\\\\.com|.*accounts\\\\.google\\)\" \"C:/Users/willi/Downloads/cookies.txt\")",
+      "Bash(python -c \":*)",
+      "Bash(PYTHONIOENCODING=utf-8 python -c \":*)"
+    ]
+  }
+}
