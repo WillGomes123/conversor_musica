@@ -338,6 +338,22 @@
         .backend-bar .dot.offline { background: #ff5858; box-shadow: 0 0 6px #ff5858; }
         .backend-bar span { color: #8888a8; }
 
+        .cookie-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 14px; background: rgba(255,165,0,0.08);
+            border: 1px solid rgba(255,165,0,0.2); border-radius: 10px;
+            margin-bottom: 20px; font-size: 0.75rem; gap: 8px;
+        }
+        .cookie-bar.ok { background: rgba(78,205,196,0.08); border-color: rgba(78,205,196,0.2); }
+        .cookie-bar .cookie-info { color: #a0a0b8; flex: 1; }
+        .cookie-bar .cookie-info strong { color: #e0e0f0; }
+        .cookie-btn {
+            padding: 6px 14px; border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px; background: rgba(255,255,255,0.06);
+            color: #d0d0e0; font-size: 0.75rem; cursor: pointer; white-space: nowrap;
+        }
+        .cookie-btn:hover { background: rgba(248,87,166,0.15); border-color: #f857a6; }
+
         .hidden { display: none !important; }
 
         .instructions {
@@ -413,6 +429,16 @@
             <div class="backend-bar" id="backendBar">
                 <div class="dot" id="backendDot"></div>
                 <span id="backendStatus">Verificando servidor...</span>
+            </div>
+
+            <div class="cookie-bar" id="cookieBar">
+                <div class="cookie-info" id="cookieInfo">
+                    <strong>Cookies:</strong> <span id="cookieStatus">verificando...</span>
+                </div>
+                <label class="cookie-btn" id="cookieUploadBtn">
+                    Enviar cookies.txt
+                    <input type="file" accept=".txt" id="cookieFileInput" style="display:none">
+                </label>
             </div>
 
             <div class="input-group">
@@ -509,6 +535,46 @@
         let backendOnline = false;
         let availableQualities = [];
 
+        // --- Cookies ---
+        async function checkCookies() {
+            const bar = document.getElementById('cookieBar');
+            const status = document.getElementById('cookieStatus');
+            try {
+                const r = await fetch(BACKEND_URL + '/api/cookies');
+                const data = await r.json();
+                if (data.active) {
+                    status.textContent = 'ativos';
+                    bar.className = 'cookie-bar ok';
+                    document.getElementById('cookieUploadBtn').textContent = 'Atualizar';
+                } else {
+                    status.textContent = 'nao configurados';
+                    bar.className = 'cookie-bar';
+                }
+            } catch (e) {
+                status.textContent = 'erro ao verificar';
+            }
+        }
+
+        document.getElementById('cookieFileInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const r = await fetch(BACKEND_URL + '/api/cookies', { method: 'POST', body: formData });
+                const data = await r.json();
+                if (data.ok) {
+                    setStatus(data.message, 'success');
+                    checkCookies();
+                } else {
+                    setStatus('Erro: ' + data.error, 'error');
+                }
+            } catch (err) {
+                setStatus('Erro ao enviar cookies.', 'error');
+            }
+            this.value = '';
+        });
+
         // --- Backend status ---
         async function checkBackend() {
             const dot = document.getElementById('backendDot');
@@ -527,6 +593,7 @@
             backendOnline = false;
         }
         checkBackend();
+        checkCookies();
 
         // --- UI controls ---
         function setFormat(format) {
